@@ -490,12 +490,11 @@ class Qwen3VLLMOnlineProcessor:
         return tokens
 
     def _commit_available(self, flush: bool = False) -> list[ASRToken]:
-        if len(self.audio_buffer) < 400:
-            return []
-
         self._trim_buffer_if_needed()
         cached_tokens = self._current_tokens
-        tokens = self._aligned_tokens()
+        # 过短的 buffer 下 transcribe_aligned 本就返回空；不能因此提前返回，
+        # 否则 flush 收尾时无法回退到缓存的已识别结果，导致整句被丢弃。
+        tokens = self._aligned_tokens() if len(self.audio_buffer) >= 400 else []
         if not tokens and flush and cached_tokens:
             tokens = cached_tokens
             self._current_tokens = cached_tokens
@@ -523,6 +522,21 @@ class Qwen3VLLMOnlineProcessor:
             self._last_committed_time = committed[-1].end
         return committed
 
+    def _drain_uncommitted(self, already_committed: List[ASRToken]) -> List[ASRToken]:
+        """收尾兜底：把 _current_tokens 中仍未提交的部分一并吐出。
+
+        正常 flush 的 cutoff 已是整段末尾，leftover 通常为空、等价于原逻辑；
+        仅当对齐时间戳异常、commit 范围未覆盖全部已识别词时才补救，避免 reset 丢字。
+        """
+        leftover = [
+            t for t in self._current_tokens
+            if t.end > self._last_committed_time + self._COMMITTED_EPSILON
+        ]
+        if not leftover:
+            return already_committed
+        self._last_committed_time = leftover[-1].end
+        return list(already_committed) + leftover
+
     def process_iter(self, is_last=False) -> Tuple[List[ASRToken], float]:
         try:
             if not is_last and self._samples_since_last_inference < self._min_new_samples:
@@ -549,7 +563,7 @@ class Qwen3VLLMOnlineProcessor:
         self._current_tokens = []
 
     def start_silence(self) -> Tuple[List[ASRToken], float]:
-        tokens = self._commit_available(flush=True)
+        tokens = self._drain_uncommitted(self._commit_available(flush=True))
         logger.info("[qwen3-vllm] start_silence: flushed %d words", len(tokens))
         self._reset_for_next_utterance()
         return tokens, self.end
@@ -566,6 +580,6 @@ class Qwen3VLLMOnlineProcessor:
         return None
 
     def finish(self) -> Tuple[List[ASRToken], float]:
-        tokens = self._commit_available(flush=True)
+        tokens = self._drain_uncommitted(self._commit_available(flush=True))
         logger.info("[qwen3-vllm] finish: flushed %d words", len(tokens))
         return tokens, self.end
