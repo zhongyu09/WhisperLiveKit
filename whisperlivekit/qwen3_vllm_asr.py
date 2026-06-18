@@ -392,17 +392,27 @@ class Qwen3VLLMASR:
         ]
         timestamp_values = _fix_timestamps(timestamp_values)
 
+        # ForcedAligner 偶发产出量级离谱的时间戳（如 8s 音频出现 7000s+）。
+        # _fix_timestamps 只保证单调、不约束上界，这类垃圾值会污染下游的提交窗口
+        # （_last_committed_time）和按时间裁剪的 _prune，导致 lines 错乱/塌缩。
+        # 这里以 buffer 实际时长为上界，逐词裁剪到 [prev_end, max_time] 并保证 end >= start。
+        max_time = len(audio) / self.SAMPLING_RATE
+
         aligned = []
+        prev_end = 0.0
         for idx, word in enumerate(words):
             start_idx = idx * 2
             end_idx = start_idx + 1
             if end_idx >= len(timestamp_values):
                 break
+            start = min(max(float(timestamp_values[start_idx]), prev_end), max_time)
+            end = min(max(float(timestamp_values[end_idx]), start), max_time)
+            prev_end = end
             aligned.append(
                 _AlignedWord(
                     text=word,
-                    start=round(float(timestamp_values[start_idx]), 3),
-                    end=round(float(timestamp_values[end_idx]), 3),
+                    start=round(start, 3),
+                    end=round(end, 3),
                 )
             )
         return aligned

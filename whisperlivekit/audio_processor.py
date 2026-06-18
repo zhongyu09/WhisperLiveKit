@@ -156,6 +156,7 @@ class AudioProcessor:
         self.current_silence = Silence(
             is_starting=True, start=audio_t
         )
+        logger.info(f"[silence] begin at {audio_t:.2f}s")
         # Push a separate start-only event so _end_silence won't mutate it
         start_event = Silence(is_starting=True, start=audio_t)
         if self.transcription_queue:
@@ -176,6 +177,11 @@ class AudioProcessor:
         self.current_silence.is_starting = False
         self.current_silence.has_ended = True
         self.current_silence.compute_duration()
+        logger.info(
+            f"[silence] end at {audio_t:.2f}s | "
+            f"start={self.current_silence.start:.2f}s | "
+            f"duration={self.current_silence.duration:.2f}s"
+        )
         self.metrics.n_silence_events += 1
         if self.current_silence.duration is not None:
             self.metrics.total_silence_duration_s += self.current_silence.duration
@@ -417,6 +423,12 @@ class AudioProcessor:
 
                 if new_tokens:
                     validated_text = self.sep.join([t.text for t in new_tokens])
+                    logger.info(
+                        f"[transcription] sentence done | "
+                        f"tokens={len(new_tokens)} | "
+                        f"end={new_tokens[-1].end:.2f}s | "
+                        f"text='{validated_text}'"
+                    )
                     if buffer_text.startswith(validated_text):
                         _buffer_transcript.text = buffer_text[len(validated_text):].lstrip()
 
