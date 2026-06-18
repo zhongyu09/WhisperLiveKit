@@ -280,6 +280,12 @@ def print_banner(config, host: str, port: int, ssl: bool = False):
     model = getattr(config, "model_size", "base")
     language = getattr(config, "lan", "auto")
 
+    from importlib.metadata import version
+    try:
+        wlk_version = version("whisperlivekit")
+    except Exception:
+        wlk_version = "dev"
+
     # Resolve actual backend name
     backend_label = backend
     if backend == "auto":
@@ -287,7 +293,7 @@ def print_banner(config, host: str, port: int, ssl: bool = False):
 
     lines = [
         "",
-        "  WhisperLiveKit",
+        f"  WhisperLiveKit v{wlk_version}_0618_1",
         f"  Backend: {backend_label} | Model: {model} | Language: {language}",
         f"  Accelerator: {_gpu_info()}",
         "",
