@@ -147,8 +147,8 @@ def parse_args():
         "--backend",
         type=str,
         default="auto",
-        choices=["auto", "mlx-whisper", "faster-whisper", "whisper", "openai-api", "voxtral", "voxtral-mlx", "qwen3-vllm", "qwen3-vllm-metal"],
-        help="Select the ASR backend implementation. Use 'qwen3-vllm' for Qwen3-ASR through in-process vLLM with ForcedAligner on GPU. Use 'qwen3-vllm-metal' for Qwen3-ASR through vllm-metal in-process STT on Apple Silicon.",
+        choices=["auto", "mlx-whisper", "faster-whisper", "whisper", "openai-api", "voxtral", "voxtral-mlx", "qwen3-vllm", "qwen3-vllm-metal", "qwen3-simul"],
+        help="Select the ASR backend implementation. Use 'qwen3-vllm' for Qwen3-ASR through in-process vLLM with ForcedAligner on GPU. Use 'qwen3-vllm-metal' for Qwen3-ASR through vllm-metal in-process STT on Apple Silicon. Use 'qwen3-simul' for the PyTorch border-distance (AlignAtt) streaming policy ported to Qwen3-ASR (no vLLM required).",
     )
     parser.add_argument(
         "--no-vac",
@@ -252,6 +252,26 @@ def parse_args():
         default=True,
         dest="trim_sentence_buffer",
         help="Disable Qwen3 vllm-metal buffer trimming at committed sentence boundaries.",
+    )
+
+    # Qwen3 SimulStreaming (border-distance) backend arguments
+    parser.add_argument(
+        "--qwen3-alignment-heads",
+        type=str,
+        default=None,
+        dest="qwen3_alignment_heads",
+        help="Path to a pre-computed alignment heads JSON for the qwen3-simul backend "
+             "(produced by detect_alignment_heads_qwen3.py). If omitted, falls back to "
+             "a heuristic using heads from the last quarter of decoder layers.",
+    )
+    parser.add_argument(
+        "--qwen3-border-fraction",
+        type=float,
+        default=0.15,
+        dest="qwen3_border_fraction",
+        help="Border-distance threshold as a fraction of audio tokens for the qwen3-simul "
+             "backend. Generation pauses when alignment attention enters the last this-fraction "
+             "of the audio (default: 0.15).",
     )
 
     # SimulStreaming-specific arguments

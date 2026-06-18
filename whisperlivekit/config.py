@@ -93,6 +93,10 @@ class WhisperLiveKitConfig:
     holdback_words: Optional[int] = None
     trim_sentence_buffer: bool = True
 
+    # Qwen3 SimulStreaming (border-distance / AlignAtt) backend
+    qwen3_alignment_heads: Optional[str] = None
+    qwen3_border_fraction: float = 0.15
+
     def __post_init__(self):
         # .en model suffix forces English
         if self.model_size and self.model_size.endswith(".en"):

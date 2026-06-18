@@ -145,6 +145,15 @@ class TranscriptionEngine:
                 self.tokenizer = None
                 self.asr = Qwen3VLLMMetalASR(**transcription_common_params)
                 logger.info("Using Qwen3-ASR vllm-metal in-process backend")
+            elif config.backend == "qwen3-simul":
+                from whisperlivekit.qwen3_simul import Qwen3SimulStreamingASR
+                self.tokenizer = None
+                self.asr = Qwen3SimulStreamingASR(
+                    **transcription_common_params,
+                    alignment_heads_path=config.qwen3_alignment_heads,
+                    border_fraction=config.qwen3_border_fraction,
+                )
+                logger.info("Using Qwen3-ASR SimulStreaming (border-distance) PyTorch backend")
             elif config.backend == "voxtral-mlx":
                 from whisperlivekit.voxtral_mlx_asr import VoxtralMLXASR
                 self.tokenizer = None
@@ -251,6 +260,9 @@ def online_factory(args, asr, language=None):
     if backend == "qwen3-vllm-metal":
         from whisperlivekit.qwen3_vllm_metal_asr import Qwen3VLLMMetalOnlineProcessor
         return Qwen3VLLMMetalOnlineProcessor(asr)
+    if backend == "qwen3-simul":
+        from whisperlivekit.qwen3_simul import Qwen3SimulStreamingOnlineProcessor
+        return Qwen3SimulStreamingOnlineProcessor(asr)
     if backend == "voxtral-mlx":
         from whisperlivekit.voxtral_mlx_asr import VoxtralMLXOnlineProcessor
         return VoxtralMLXOnlineProcessor(asr)
