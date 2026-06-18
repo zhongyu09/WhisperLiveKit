@@ -398,7 +398,7 @@ class AudioProcessor:
                         self.transcription.end_silence(item.duration, self.state.tokens[-1].end if self.state.tokens else 0)
                     if self.state.tokens:
                         asr_processing_logs += f" | last_end = {self.state.tokens[-1].end} |"
-                    logger.info(asrca_processing_logs)
+                    logger.info(asr_processing_logs)
                     new_tokens = new_tokens or []
                     current_audio_processed_upto = max(current_audio_processed_upto, stream_time_end_of_current_pcm)
                 elif isinstance(item, ChangeSpeaker):
