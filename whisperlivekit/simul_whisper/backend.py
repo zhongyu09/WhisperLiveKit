@@ -34,7 +34,7 @@ if HAS_FASTER_WHISPER:
 else:
     WhisperModel = None
 
-MIN_DURATION_REAL_SILENCE = 5
+MIN_DURATION_REAL_SILENCE = 0.5
 
 class SimulStreamingOnlineProcessor:
     """Online processor for SimulStreaming ASR."""

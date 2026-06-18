@@ -8,6 +8,8 @@ from whisperlivekit.timed_objects import ASRToken, Sentence, Transcript
 
 logger = logging.getLogger(__name__)
 
+MIN_DURATION_REAL_SILENCE = 0.5
+
 class HypothesisBuffer:
     """
     Buffer to store and process ASR hypothesis tokens.
@@ -167,7 +169,8 @@ class OnlineASRProcessor:
         if not silence_duration or silence_duration <= 0:
             return
 
-        long_silence = silence_duration >= 5
+        # TODO: fix this as new config
+        long_silence = silence_duration >= MIN_DURATION_REAL_SILENCE
         if not long_silence:
             gap_samples = int(self.SAMPLING_RATE * silence_duration)
             if gap_samples > 0:
